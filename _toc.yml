@@ -4,6 +4,7 @@
 format: jb-book
 root: intro
 chapters:
+- file: setup.md
 - file: notebooks/01-intro/tutorial.ipynb
 - file: notebooks/02-mace/Advanced:_Under_the_hood_MACE.ipynb
 - file: notebooks/02-mace/Neural_Networks:_MACE.ipynb
