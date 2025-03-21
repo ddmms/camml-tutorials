@@ -13,5 +13,5 @@ chapters:
 - file: notebooks/03-nn-materials/neural-nets-students.ipynb
 - file: notebooks/04-cgcnn/graph-networks-completed.ipynb
 - file: notebooks/04-cgcnn/graph-networks-students.ipynb
-- file: notebooks/05-generative/autoencoders.ipynb
-- file: notebooks/05-generative/crystallm.ipynb
+# - file: notebooks/05-generative/autoencoders.ipynb
+# - file: notebooks/05-generative/crystallm.ipynb
