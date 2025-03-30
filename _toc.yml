@@ -3,15 +3,36 @@
 
 format: jb-book
 root: intro
-chapters:
-- file: setup.md
-- file: notebooks/01-intro/tutorial.ipynb
-- file: notebooks/02-mace/Advanced:_Under_the_hood_MACE.ipynb
-- file: notebooks/02-mace/Neural_Networks:_MACE.ipynb
-- file: notebooks/03-nn-materials/conv-nets-torch-students.ipynb
-- file: notebooks/03-nn-materials/conv-filter.ipynb
-- file: notebooks/03-nn-materials/neural-nets-students.ipynb
-- file: notebooks/04-cgcnn/graph-networks-completed.ipynb
-- file: notebooks/04-cgcnn/graph-networks-students.ipynb
-- file: notebooks/05-generative/autoencoders.ipynb
-- file: notebooks/05-generative/crystallm.ipynb
+parts:
+- caption: Introduction
+  numbered: false
+  chapters:
+  - file: setup.md
+- caption: Day 1
+  numbered: false
+  chapters:
+  - file: notebooks/01-intro/tutorial.ipynb
+    title: Basics of Machine Learning
+- caption: Day 2
+  numbered: false
+  chapters:
+  - file: notebooks/06-unsupervised/unsupervised-learning.ipynb
+- caption: Day 3
+  numbered: false
+  chapters:
+  - file: notebooks/03-nn-materials/conv-nets-torch-students.ipynb
+  - file: notebooks/03-nn-materials/conv-filter.ipynb
+  - file: notebooks/03-nn-materials/neural-nets-students.ipynb
+  - file: notebooks/04-cgcnn/graph-networks.ipynb
+- caption: Day 4
+  numbered: false
+  chapters:
+  - file: notebooks/day-4/T01-MACE-Practice-I.ipynb
+  - file: notebooks/day-4/T02-MACE-Practice-II.ipynb
+  - file: notebooks/day-4/T03-MACE-neb.ipynb
+- caption: Day 5
+  numbered: false
+  chapters:
+  # - file: notebooks/05-generative/autoencoders.ipynb
+  - file: notebooks/05-generative/crystallm.ipynb
+  - file: notebooks/05-generative/diffusion-model.ipynb
