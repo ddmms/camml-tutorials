@@ -82,7 +82,7 @@ open a terminal
 
 ``` bash
 cd
-git clone https://gitlab.com/cam-ml/camml.git WORKSHOP
+git clone https://gitlab.com/cam-ml/tutorials.git WORKSHOP
 ```
 
 a WORKSHOP folder will appear on the left hand side and now you can
