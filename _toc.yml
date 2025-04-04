@@ -33,6 +33,7 @@ parts:
 - caption: Day 5
   numbered: false
   chapters:
-  # - file: notebooks/05-generative/autoencoders.ipynb
+  - file: notebooks/05-generative/autoencoders.ipynb
   - file: notebooks/05-generative/crystallm.ipynb
-  - file: notebooks/05-generative/diffusion-model.ipynb
+  - file: notebooks/05-generative/diffusion_model.ipynb
+  - file: notebooks/05-generative/energy_calc.ipynb
