@@ -37,3 +37,4 @@ parts:
   - file: notebooks/05-generative/crystallm.ipynb
   - file: notebooks/05-generative/diffusion_model.ipynb
   - file: notebooks/05-generative/energy_calc.ipynb
+  - file: notebooks/05-generative/simple_diffusion.ipynb
