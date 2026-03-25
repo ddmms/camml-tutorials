@@ -1,0 +1,43 @@
+version: 1
+project:
+  title: CaMML School training material
+  authors:
+    - name: The CaMML School Collective
+  copyright: 2023-2026
+#  bibliography:
+#    - references.bib
+  toc:
+    - file: intro.md
+    - title: Introduction
+      children:
+        - file: setup.md
+    - title: Day 1
+      children:
+        - file: notebooks/01-intro/tutorial.ipynb
+          title: Basics of Machine Learning
+    - title: Day 2
+      children:
+        - file: notebooks/06-unsupervised/unsupervised-learning.ipynb
+    - title: Day 3
+      children:
+        - file: notebooks/03-nn-materials/conv-nets-torch-students.ipynb
+        - file: notebooks/03-nn-materials/conv-filter.ipynb
+        - file: notebooks/03-nn-materials/neural-nets-students.ipynb
+        - file: notebooks/04-cgcnn/graph-networks.ipynb
+    - title: Day 4
+      children:
+        - file: notebooks/day-4/T01-MACE-Practice-I.ipynb
+        - file: notebooks/day-4/T02-MACE-Practice-II.ipynb
+        - file: notebooks/day-4/T03-MACE-neb.ipynb
+    - title: Day 5
+      children:
+        - file: notebooks/05-generative/autoencoders.ipynb
+        - file: notebooks/05-generative/crystallm.ipynb
+        - file: notebooks/05-generative/diffusion_model.ipynb
+        - file: notebooks/05-generative/energy_calc.ipynb
+        - file: notebooks/05-generative/simple_diffusion.ipynb
+site:
+  options:
+    logo: logo.png
+    folders: true
+  template: book-theme
