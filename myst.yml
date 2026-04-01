@@ -20,6 +20,8 @@ project:
         - file: notebooks/06-unsupervised/unsupervised-learning.ipynb
     - title: Day 3
       children:
+        - file: notebooks/03-nn-materials/mlp-from-scratch-numpy-teaching.ipynb
+          title: MLP From Scratch (Teaching)
         - file: notebooks/03-nn-materials/conv-nets-torch-students.ipynb
         - file: notebooks/03-nn-materials/conv-filter.ipynb
         - file: notebooks/03-nn-materials/neural-nets-students.ipynb
