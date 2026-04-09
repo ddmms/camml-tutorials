@@ -11,7 +11,7 @@ setup your instance.
 
 ### Create account and login
 
-1.  Go to training.jupyter.stfc.ac.uk DO NOT CLICK on sign in!
+1.  Go to jupyter.stfc.ac.uk DO NOT CLICK on sign in!
 
    ![landing page](figs/01-startup-screen.webp)
 
@@ -47,8 +47,6 @@ default and has a persistent home directory associated with your user.
 
    ![landing page](figs/06-instance.webp)
 
-you can see a video of [the process](https://youtu.be/0D6qKeVWuYk)
-
 ### Stop instance and update
 
 if things go wrong or you need to create an instance with an updated
@@ -68,8 +66,6 @@ image you need to follow the following steps.
 
 3.  logout and create a new instance as above. This will use the latest
     version of the image.
-
-[a video of the process](https://youtu.be/R0rEl9DbG3k)
 
 
 ## Obtain exercises
