@@ -150,18 +150,18 @@ podman unshare chown 1001:100 work
     > remove **-v ./work:/home/jovyan/work:Z** below
 
 ``` bash
-podman run --rm --security-opt seccomp=unconfined -p 8888:8888 -v ./work:/home/jovyan/work:Z ghcr.io/ccp5uk/summer2025:latest
+podman run --rm --security-opt seccomp=unconfined -p 8888:8888 -v ./work:/home/jovyan/work:Z harbor.stfc.ac.uk/ccp5/ml2026:latest
 ```
 
 if you see this error, especially on MAC OSX
 
 ``` bash
-Trying to pull ghcr.io/ccp5uk/summer2025:latest...
-Error: internal error: unable to copy from source docker://ghcr.io/ccp5uk/summer2025:latest: choosing an image from manifest list docker://ghcr.io/ccp5uk/summer2025:latest: no image found in image index for architecture "arm64", variant "v8", OS “linux"
+Trying to pull harbor.stfc.ac.uk/ccp5/ml2026:latest...
+Error: internal error: unable to copy from source docker://harbor.stfc.ac.uk/ccp5/ml2026:latest: choosing an image from manifest list docker://harbor.stfc.ac.uk/ccp5/ml2026:latest: no image found in image index for architecture "arm64", variant "v8", OS “linux"
 ```
 
 ``` bash
-podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/amd64  -v ./work:/home/jovyan/work:Z ghcr.io/ccp5uk/summer2025:latest
+podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/amd64  -v ./work:/home/jovyan/work:Z harbor.stfc.ac.uk/ccp5/ml2026:latest
 ```
 
 4.  get into the container
@@ -187,7 +187,7 @@ podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/
 9.  keep the image up to date
 
 ``` bash
-podman pull ghcr.io/ccp5uk/summer2025:latest
+podman pull harbor.stfc.ac.uk/ccp5/ml2026:latest
 ```
 
 10. [optional] If you have an NVIDIA GPU and you want to use, check the instructions here
