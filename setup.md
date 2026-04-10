@@ -190,6 +190,9 @@ podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/
 podman pull ghcr.io/ccp5uk/summer2025:latest
 ```
 
+10. [optional] If you have an NVIDIA GPU and you want to use, check the instructions here
+     https://podman-desktop.io/docs/podman/gpu
+
 **Note** you can change the theme by going to Settings-\>Theme-\>
 
 ## Obtain exercises
