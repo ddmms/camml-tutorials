@@ -102,6 +102,130 @@ confortable with.
 -   **emacs** probably the commonest full-screen UNIX editor.
 
 
-## Advanced: running docker tutorial.
+## Advanced: run locally with docker/podman
 
-to be added
+Both [Docker](https://www.docker.com/) and
+[podman](https://www.podman.io/) shall work. We will use podman in these
+instructions.
+
+1.  install podman
+
+    Follow the [instructions for your operating
+    system.](https://podman.io) Depending on your OS this may be simpler
+    or more difficult we suggest you do this prior to school.
+
+    For Linux your package manager probably already has podman.
+
+    For Windows and MacOS choose *podman CLI*\* and install. For windows
+    install [wsl2
+    before](https://learn.microsoft.com/en-us/windows/wsl/install) be
+    sure you set version 2.
+
+    For windows and MacOS start the machines by starting a shell,
+    Windows Powershell in windows any terminal in mac.
+
+``` bash
+# only windows and MacOs
+podman machine init
+podman machine start
+```
+
+2.  create a folder to share with the machine(optional)
+
+    > this folder can be sure to get data from the jupyterhub on your
+    > local harddrive after you shut it down. Be careful that is not
+    > writable to a normal user on your machine, only root on Linux.
+
+``` bash
+mkdir work
+# next command is only on linux
+podman unshare chown 1001:100 work
+```
+
+3.  start the container
+
+    Execute the command in a terminal.
+
+    > **note** if you choose not to have a folder in the previous step
+    > remove **-v ./work:/home/jovyan/work:Z** below
+
+``` bash
+podman run --rm --security-opt seccomp=unconfined -p 8888:8888 -v ./work:/home/jovyan/work:Z harbor.stfc.ac.uk/ccp5/ml2026:latest
+```
+
+if you see this error, especially on MAC OSX
+
+``` bash
+Trying to pull harbor.stfc.ac.uk/ccp5/ml2026:latest...
+Error: internal error: unable to copy from source docker://harbor.stfc.ac.uk/ccp5/ml2026:latest: choosing an image from manifest list docker://harbor.stfc.ac.uk/ccp5/ml2026:latest: no image found in image index for architecture "arm64", variant "v8", OS “linux"
+```
+
+``` bash
+podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/amd64  -v ./work:/home/jovyan/work:Z harbor.stfc.ac.uk/ccp5/ml2026:latest
+```
+
+4.  get into the container
+
+    At this stage you should have a running jupyter hub, all you need is
+    to start it in your browser. You shall see various debug lines in
+    your terminal, localte **Or copy and paste one of these URLs:** part
+    and click on one of them.
+
+> start container
+
+6.  if all is ok you shall see
+
+
+
+7.  click on Desktop tile to get access to a traditional environment
+
+
+8.  close the container
+
+    Ctrl+C in terminal will do it.
+
+9.  keep the image up to date
+
+``` bash
+podman pull harbor.stfc.ac.uk/ccp5/ml2026:latest
+```
+
+10. [optional] If you have an NVIDIA GPU and you want to use, check the instructions here
+     https://podman-desktop.io/docs/podman/gpu
+
+**Note** you can change the theme by going to Settings-\>Theme-\>
+
+## Obtain exercises
+
+open a terminal, clik on the Terminal tile.
+
+``` bash
+cd
+# or if you setup the work folder above, uncommend bellow
+#cd work
+git clone https://gitlab.com/cam-ml/tutorials.git WORKSHOP
+```
+
+a WORKSHOP folder will appear on the left hand side and now you can
+navigate inside it and find the relevant notebook of the day.
+
+> checkout WORKSHOP
+
+
+## Using Google Colab
+
+Run using [Google Colab](https://colab.research.google.com/)
+
+1.  Get a google account if you do not have one.
+
+    Navigate to the desired tutorial on \[tutorials
+    website\](https://workshop.camml.ac.uk/) and click the
+    ![ico](https://colab.research.google.com/assets/colab-badge.svg)
+    badge.
+
+<!-- -->
+
+2.  be sure you execute the Google colab specific section of each tutorial, shall be one.
+
+**Note**: google colab instances are not persistent so you may want to
+save your work in google drive or download it on your machine.
