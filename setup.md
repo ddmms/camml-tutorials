@@ -113,8 +113,7 @@ available at the unix prompt.
 -   **gfortran**: the fortran compiler (it assumes f77 and f95 for `*`.f
     and `*`.f90 respecively). Some of the codes may be in fixed format
     requiring the compiler flag -ffixed-form.
--   **python3** is available on the machine, use python3, be aware that
-    python will give you python2.
+-   **python3** is available on the machine, version 3.12.13
 
 There are several editors available. You should choose whichever you are
 confortable with.
@@ -122,12 +121,13 @@ confortable with.
 -   **vi** the venerable UNIX screen mode editor.
 -   **vim** the improved venerable UNIX screen mode editor.
 -   **emacs** probably the commonest full-screen UNIX editor.
+-   also , **nano**, **pico**
 
 
 ## Advanced: run locally with docker/podman
 
 Both [Docker](https://www.docker.com/) and
-[podman](https://www.podman.io/) shall work. We will use podman in these
+[podman](https://www.podman.io/) shall work. We will use pod'man in these
 instructions.
 
 1.  install podman
