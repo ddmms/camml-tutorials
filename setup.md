@@ -4,7 +4,7 @@
 
 We will use STFC cloud environment
 <https://jupyter.stfc.ac.uk>. It runs a custom baked docker
-image of Ubuntu Noble Numbat
+image of Ubuntu Questing Quokka
 
 Use the username given at registration and following instructions to
 setup your instance.
