@@ -190,17 +190,20 @@ podman run --rm --security-opt seccomp=unconfined -p 8888:8888 --platform linux/
 
     At this stage you should have a running jupyter hub, all you need is
     to start it in your browser. You shall see various debug lines in
-    your terminal, localte **Or copy and paste one of these URLs:** part
+    your terminal, locate **Or copy and paste one of these URLs:** part
     and click on one of them.
 
-> start container
+   ![start](figs/01-local-start.webp)
+
 
 6.  if all is ok you shall see
 
 
+   ![hub](figs/02-local-hub.webp)
 
 7.  click on Desktop tile to get access to a traditional environment
 
+   ![desktop](figs/03-local-desktop.webp)
 
 8.  close the container
 
