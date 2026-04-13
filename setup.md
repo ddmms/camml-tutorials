@@ -80,7 +80,29 @@ git clone https://gitlab.com/cam-ml/tutorials.git WORKSHOP
 a WORKSHOP folder will appear on the left hand side and now you can
 navigate inside it and find the relevant notebook of the day.
 
-> checkout WORKSHOP
+## Useful commands
+
+as tutorials get updated or corrected during the school you may need to pull again,
+solution or corrections. To do this in general you do
+
+```bash
+# be sure you are in the right folder
+cd ~/WORKSHOP
+git pull
+```
+if you have local changes, you may want to use
+
+```bash
+git stash
+```
+
+to save your changes, after this you can do **git pull**
+
+after you can restore your changes with
+
+```bash
+git stash apply
+```
 
 ## Compilers
 
