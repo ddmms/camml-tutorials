@@ -28,9 +28,10 @@ project:
         - file: notebooks/04-cgcnn/graph-networks.ipynb
     - title: Day 4
       children:
-        - file: notebooks/day-4/T01-MACE-Practice-I.ipynb
-        - file: notebooks/day-4/T02-MACE-Practice-II.ipynb
-        - file: notebooks/day-4/T03-MACE-neb.ipynb
+        - file: notebooks/07-mlips/T01_MACE_Practice_I.ipynb
+        - file: notebooks/07-mlips/T02_MACE_Practice_II.ipynb
+        - file: notebooks/07-mlips/T03_MLIP_Apps.ipynb
+        - file: notebooks/07-mlips/T04_MACE_neb.ipynb
     - title: Day 5
       children:
         - file: notebooks/05-generative/autoencoders.ipynb
