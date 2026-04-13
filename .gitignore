@@ -1,7 +1,7 @@
 **/__pycache__
 notebooks/04-cgcnn/elastic-model.pt
 _build
-
+**/.ipynb_checkpoints
 notebooks/01-intro/.ipynb_checkpoints/tutorial_solution-checkpoint.ipynb
 
 notebooks/01-intro/.ipynb_checkpoints/tutorial-checkpoint.ipynb
