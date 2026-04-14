@@ -36,11 +36,9 @@ project:
         - file: notebooks/07-mlips/T04_MACE_neb.ipynb
     - title: Day 5
       children:
-        - file: notebooks/05-generative/autoencoders.ipynb
-        - file: notebooks/05-generative/crystallm.ipynb
-        - file: notebooks/05-generative/diffusion_model.ipynb
-        - file: notebooks/05-generative/energy_calc.ipynb
-        - file: notebooks/05-generative/simple_diffusion.ipynb
+        - file: notebooks/05-generative/diffusion-fundamentals.ipynb
+        - file: notebooks/05-generative/crystal-diffusion-from-scratch.ipynb
+        - file: notebooks/05-generative/sota-crystals-comparison.ipynb
 site:
   options:
     logo: logo.png
