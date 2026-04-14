@@ -17,7 +17,9 @@ project:
           title: Basics of Machine Learning
     - title: Day 2
       children:
-        - file: notebooks/06-unsupervised/unsupervised-learning.ipynb
+        - file: notebooks/02-bayesian-optimisation/CAMMLS_BOFire.ipynb
+        - file: notebooks/02-bayesian-optimisation/synthetic_examples/synthetic_example.ipynb
+        - file: notebooks/02-bayesian-optimisation/synthetic_examples/visualization.ipynb
     - title: Day 3
       children:
         - file: notebooks/03-nn-materials/mlp-from-scratch-numpy-teaching.ipynb
