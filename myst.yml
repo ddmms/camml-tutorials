@@ -15,7 +15,12 @@ project:
       children:
         - file: notebooks/01-intro/tutorial.ipynb
           title: Basics of Machine Learning
-    - title: Day 2
+    - title: Day 2 - Unsupervised
+      children:
+        - file: notebooks/08-unsupervised/tutorial_1_H2.ipynb
+        - file: notebooks/08-unsupervised/tutorial_2_EC_EC.ipynb
+        - file: notebooks/08-unsupervised/tutorial_3_Li_EC.ipynb
+    - title: Day 2 - Bayesian Optimisation
       children:
         - file: notebooks/02-bayesian-optimisation/CAMMLS_BOFire.ipynb
         - file: notebooks/02-bayesian-optimisation/synthetic_examples/synthetic_example.ipynb
