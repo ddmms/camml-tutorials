@@ -930,5 +930,8 @@ __all__ = [
     "summarize_structures",
     "validity_report",
     "lightweight_validity_dict",
+    "safe_structure_density",
+    "safe_spacegroup_info",
+    "safe_min_pair_distance",
 ]
 
