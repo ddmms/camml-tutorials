@@ -14,21 +14,51 @@ from statistics import mean
 from IPython.display import HTML, display
 
 
-TUTORIAL_REPO = "camml-tutorials"
-TUTORIAL_REMOTE = "https://github.com/ddmms/camml-tutorials.git"
+TUTORIAL_REPO = "tutorials"
+TUTORIAL_REMOTE = "https://gitlab.com/cam-ml/tutorials.git"
+TUTORIAL_COLAB_DIR_CANDIDATES = (
+    Path("/content") / "tutorials",
+    Path("/content") / "cam_ml_tutorials",
+    Path("/content") / "camml-tutorials",
+)
 NOTEBOOK_FILENAME = "mattergen-crystals.ipynb"
 MATTERGEN_REMOTE = "https://github.com/microsoft/mattergen.git"
 MATTERGEN_COMMIT = "a245cf2b7538eea6d873e6430b0e30c56d26c60e"
 
 def find_notebook_root(notebook_filename: str = NOTEBOOK_FILENAME) -> Path:
+    module_candidate = Path(__file__).resolve().parent.parent
+    if (module_candidate / notebook_filename).exists() and (module_candidate / "README.md").exists():
+        return module_candidate.resolve()
+
     cwd = Path.cwd().resolve()
     for candidate in [cwd, *cwd.parents]:
         if (candidate / notebook_filename).exists() and (candidate / "README.md").exists():
             return candidate.resolve()
-    content_candidate = Path("/content") / TUTORIAL_REPO / "notebooks" / "05-generative"
-    if (content_candidate / notebook_filename).exists():
-        return content_candidate.resolve()
+
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        content_candidate = repo_dir / "notebooks" / "05-generative"
+        if (content_candidate / notebook_filename).exists():
+            return content_candidate.resolve()
+
     raise FileNotFoundError("Could not locate the notebooks/05-generative directory for this tutorial repo.")
+
+
+def ensure_colab_tutorial_repo() -> Path:
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        notebook_root = repo_dir / "notebooks" / "05-generative"
+        if notebook_root.exists():
+            return repo_dir.resolve()
+
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        if repo_dir.exists():
+            continue
+        print(f"Cloning {TUTORIAL_REMOTE} into {repo_dir}...")
+        subprocess.run(["git", "clone", "--depth", "1", "--branch", "main", TUTORIAL_REMOTE, str(repo_dir)], check=True)
+        return repo_dir.resolve()
+
+    raise FileNotFoundError(
+        "Could not find or clone the Day 5 tutorial repo in /content for this Colab session."
+    )
 
 
 def repo_has_commit(path: Path, commit: str) -> bool:
@@ -46,10 +76,8 @@ def setup_mattergen_environment(
     notebook_filename: str = NOTEBOOK_FILENAME,
     mattergen_commit: str = MATTERGEN_COMMIT,
 ):
-    repo_path_in_content = Path("/content") / TUTORIAL_REPO
-    if "google.colab" in sys.modules and not repo_path_in_content.exists():
-        print(f"Cloning {TUTORIAL_REPO} into /content/...")
-        subprocess.run(["git", "clone", TUTORIAL_REMOTE, str(repo_path_in_content)], check=True)
+    if "google.colab" in sys.modules:
+        ensure_colab_tutorial_repo()
 
     notebook_root = find_notebook_root(notebook_filename)
     os.chdir(notebook_root)
@@ -240,7 +268,7 @@ def collect_mattergen_runs(mattergen_run_info):
                 "samples": len(run_rows),
                 "mean_n_sites": f"{mean(row['n_sites'] for row in run_rows):.2f}",
                 "mean_volume": f"{mean(row['volume'] for row in run_rows):.2f}",
-                "mean_density": f"{mean(row['density'] for row in run_rows):.3f}",
+                "unique_formulas": len(formula_counter),
                 "top_formula": formula_counter.most_common(1)[0][0],
             }
         )
@@ -250,7 +278,7 @@ def collect_mattergen_runs(mattergen_run_info):
 
 
 def render_summary_table(rows):
-    headers = ["run", "target", "samples", "mean_n_sites", "mean_volume", "mean_density", "top_formula"]
+    headers = ["run", "target", "samples", "mean_n_sites", "mean_volume", "unique_formulas", "top_formula"]
     th_style = "border:1px solid #ddd; padding:4px 8px; text-align:left; background:#eff6ff;"
     td_style = "border:1px solid #ddd; padding:4px 8px; text-align:left;"
     body = []
@@ -303,18 +331,23 @@ def plot_mattergen_diagnostics(mattergen_run_info, mattergen_rows, palette=None)
     label_order = list(mattergen_run_info.keys())
     rows_by_label = {label: [row for row in mattergen_rows if row["label"] == label] for label in label_order}
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 10), facecolor="white")
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10), facecolor="white")
     rng = np.random.default_rng(0)
+    baseline_label = "unconditional" if "unconditional" in rows_by_label else label_order[0]
+    baseline_rows = rows_by_label[baseline_label]
+    baseline_mean_n_sites = float(np.mean([row["n_sites"] for row in baseline_rows]))
+    baseline_mean_volume = float(np.mean([row["volume"] for row in baseline_rows]))
+    shift_rows = []
+
     for x, label in enumerate(label_order, start=1):
         rows = rows_by_label[label]
-        densities = [row["density"] for row in rows]
         volumes = [row["volume"] for row in rows]
         n_sites = [row["n_sites"] for row in rows]
         jitter = rng.normal(0.0, 0.04, size=len(rows)) if rows else np.array([])
 
         axes[0, 0].scatter(
             np.full(len(rows), x) + jitter,
-            densities,
+            n_sites,
             s=60,
             alpha=0.85,
             color=palette.get(label, "#666666"),
@@ -330,10 +363,9 @@ def plot_mattergen_diagnostics(mattergen_run_info, mattergen_rows, palette=None)
             edgecolors="black",
             linewidths=0.3,
         )
-        axes[1, 2].bar(x, len({row["formula"] for row in rows}), color=palette.get(label, "#666666"), width=0.6)
         axes[1, 0].scatter(
+            n_sites,
             volumes,
-            densities,
             s=90,
             alpha=0.85,
             label=mattergen_run_info[label]["display_name"],
@@ -341,73 +373,81 @@ def plot_mattergen_diagnostics(mattergen_run_info, mattergen_rows, palette=None)
             edgecolors="black",
             linewidths=0.3,
         )
-        axes[0, 2].hist(
-            densities,
-            bins=4,
+        axes[1, 1].hist(
+            volumes,
+            bins=min(6, max(3, len(rows))),
             alpha=0.55,
             color=palette.get(label, "#666666"),
             label=mattergen_run_info[label]["display_name"],
         )
-        axes[1, 1].hist(
-            n_sites,
-            bins=np.arange(min(n_sites) - 0.5, max(n_sites) + 1.5, 1.0) if n_sites else np.arange(0.5, 1.5),
-            alpha=0.5,
-            color=palette.get(label, "#666666"),
-            label=mattergen_run_info[label]["display_name"],
+        shift_rows.append(
+            {
+                "run": mattergen_run_info[label]["display_name"],
+                "target": mattergen_run_info[label]["target_label"],
+                "mean_n_sites": float(np.mean(n_sites)),
+                "delta_mean_n_sites": float(np.mean(n_sites) - baseline_mean_n_sites),
+                "mean_volume": float(np.mean(volumes)),
+                "delta_mean_volume": float(np.mean(volumes) - baseline_mean_volume),
+                "unique_formulas": len({row["formula"] for row in rows}),
+            }
         )
 
     for ax, ylabel, title in [
-        (axes[0, 0], "density (mass / A^3 proxy)", "Density by MatterGen run"),
-        (axes[0, 1], "volume (A^3)", "Volume by MatterGen run"),
+        (axes[0, 0], "n_sites", "Atom counts by MatterGen run"),
+        (axes[0, 1], "volume (A^3)", "Cell volumes by MatterGen run"),
     ]:
         ax.set_xticks(range(1, len(label_order) + 1))
         ax.set_xticklabels([mattergen_run_info[label]["display_name"] for label in label_order], rotation=15, ha="right")
         ax.set_ylabel(ylabel)
         ax.set_title(title)
 
-    axes[0, 2].set_title("Density distributions across unconditional and conditioned runs")
-    axes[0, 2].set_xlabel("density")
-    axes[0, 2].set_ylabel("count")
-    axes[0, 2].legend(frameon=False)
-
-    axes[1, 0].set_title("Density vs volume across unconditional and conditioned runs")
-    axes[1, 0].set_xlabel("volume (A^3)")
-    axes[1, 0].set_ylabel("density")
+    axes[1, 0].set_title("Did conditioning move the generator into different size regimes?")
+    axes[1, 0].set_xlabel("n_sites")
+    axes[1, 0].set_ylabel("volume (A^3)")
     axes[1, 0].legend(frameon=False)
 
-    axes[1, 1].set_title("Atom-count distributions across MatterGen runs")
-    axes[1, 1].set_xlabel("n_sites")
+    axes[1, 1].set_title("Volume distributions across unconditional and conditioned runs")
+    axes[1, 1].set_xlabel("volume (A^3)")
     axes[1, 1].set_ylabel("count")
     axes[1, 1].legend(frameon=False)
-
-    axes[1, 2].set_xticks(range(1, len(label_order) + 1))
-    axes[1, 2].set_xticklabels([mattergen_run_info[label]["display_name"] for label in label_order], rotation=15, ha="right")
-    axes[1, 2].set_ylabel("unique formulas")
-    axes[1, 2].set_title("Formula diversity per MatterGen run")
 
     plt.tight_layout()
     plt.show()
 
-    print("Per-run averages:")
-    for label in label_order:
-        rows = rows_by_label[label]
+    print("Per-run shifts relative to the unconditional baseline:")
+    for row in shift_rows:
         print(
-            f"- {mattergen_run_info[label]['display_name']}: "
-            f"mean density={np.mean([row['density'] for row in rows]):.3f}, "
-            f"mean volume={np.mean([row['volume'] for row in rows]):.2f}, "
-            f"mean n_sites={np.mean([row['n_sites'] for row in rows]):.2f}"
+            f"- {row['run']}: "
+            f"mean n_sites={row['mean_n_sites']:.2f} "
+            f"(delta={row['delta_mean_n_sites']:+.2f}), "
+            f"mean volume={row['mean_volume']:.2f} A^3 "
+            f"(delta={row['delta_mean_volume']:+.2f}), "
+            f"unique formulas={row['unique_formulas']}"
         )
 
-    sorted_by_density = sorted(mattergen_rows, key=lambda row: row["density"])
+    sorted_by_volume = sorted(mattergen_rows, key=lambda row: row["volume"])
     representative_rows = []
     for label in label_order:
-        representative_rows.extend(rows_by_label[label][:2])
+        rows = rows_by_label[label]
+        mean_n_sites = float(np.mean([row["n_sites"] for row in rows]))
+        mean_volume = float(np.mean([row["volume"] for row in rows]))
+        representative_rows.extend(
+            sorted(
+                rows,
+                key=lambda row: (
+                    abs(row["n_sites"] - mean_n_sites),
+                    abs(row["volume"] - mean_volume),
+                    row["local_index"],
+                ),
+            )[:2]
+        )
 
     return {
         "label_order": label_order,
         "rows_by_label": rows_by_label,
         "representative_rows": representative_rows,
-        "sorted_by_density": sorted_by_density,
+        "shift_rows": shift_rows,
+        "sorted_by_volume": sorted_by_volume,
     }
 
 
@@ -429,7 +469,7 @@ def show_mattergen_gallery(mattergen_atoms, selected_rows, title, *, columns=3):
         atoms = mattergen_atoms[row["label"]][row["local_index"]]
         plot_atoms(atoms, ax=ax, rotation="20x,30y,0z", radii=0.35, show_unit_cell=2)
         ax.set_title(
-            f"{row['display_name']}\n{row['formula']} | density={row['density']:.3f}\nvolume={row['volume']:.1f} A^3",
+            f"{row['display_name']}\n{row['formula']} | {row['n_sites']} atoms\nvolume={row['volume']:.1f} A^3",
             fontsize=8,
         )
         ax.set_axis_off()
@@ -510,9 +550,11 @@ def extract_mattergen_trajectory_preview(mattergen_run_info, notebook_root, *, o
 __all__ = [
     "MATTERGEN_COMMIT",
     "MATTERGEN_REMOTE",
+    "TUTORIAL_COLAB_DIR_CANDIDATES",
     "TUTORIAL_REMOTE",
     "TUTORIAL_REPO",
     "collect_mattergen_runs",
+    "ensure_colab_tutorial_repo",
     "extract_mattergen_trajectory_preview",
     "find_notebook_root",
     "inspect_generated_cif_archive",

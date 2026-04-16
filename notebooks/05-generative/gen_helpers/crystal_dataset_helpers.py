@@ -8,6 +8,7 @@ import math
 import random
 import re
 from pathlib import Path
+import pandas as pd
 
 import numpy as np
 import requests
@@ -730,6 +731,158 @@ def lattice_matrix_from_features_torch(features: torch.Tensor) -> torch.Tensor:
     vz = torch.stack([cx, cy, torch.sqrt(cz_sq)], dim=-1)
 
     return torch.stack([va, vb, vz], dim=1)
+
+
+def safe_structure_density(structure: Structure) -> float:
+    try:
+        volume = float(structure.volume)
+        if (not np.isfinite(volume)) or volume <= 1e-8:
+            return float("nan")
+        density = float(structure.density)
+        return density if np.isfinite(density) else float("nan")
+    except Exception:
+        return float("nan")
+
+def safe_spacegroup_info(structure: Structure):
+    try:
+        sga = SpacegroupAnalyzer(structure, symprec=0.1)
+        return int(sga.get_space_group_number()), str(sga.get_space_group_symbol())
+    except Exception:
+        return np.nan, "unknown"
+
+def safe_min_pair_distance(structure: Structure) -> float:
+    try:
+        dm = np.asarray(structure.distance_matrix, dtype=float)
+    except Exception:
+        return float("nan")
+    if dm.ndim != 2 or dm.shape[0] == 0:
+        return float("nan")
+    mask = np.isfinite(dm) & (dm > 1e-8)
+    if not mask.any():
+        return float("nan")
+    return float(dm[mask].min())
+
+
+def lightweight_validity_dict(structure: Structure) -> dict:
+    try:
+        num_atoms = int(len(structure))
+    except Exception:
+        num_atoms = 0
+
+    try:
+        volume = float(structure.volume)
+    except Exception:
+        volume = float("nan")
+
+    density = safe_structure_density(structure)
+    min_pair_distance = safe_min_pair_distance(structure)
+
+    try:
+        lengths = np.asarray(structure.lattice.abc, dtype=float)
+        angles = np.asarray(structure.lattice.angles, dtype=float)
+    except Exception:
+        lengths = np.array([np.nan, np.nan, np.nan], dtype=float)
+        angles = np.array([np.nan, np.nan, np.nan], dtype=float)
+
+    valid_volume = bool(np.isfinite(volume) and volume > 1e-3)
+    valid_density = bool(np.isfinite(density) and 0.2 <= density <= 25.0)
+    distance_ok = bool(np.isfinite(min_pair_distance) and min_pair_distance >= 0.6)
+    lengths_ok = bool(np.all(np.isfinite(lengths)) and np.all((lengths >= 2.0) & (lengths <= 25.0)))
+    angles_ok = bool(np.all(np.isfinite(angles)) and np.all((angles >= 20.0) & (angles <= 160.0)))
+    atom_count_ok = bool(num_atoms >= 2)
+
+    reasons = []
+    if not atom_count_ok:
+        reasons.append("too few atoms")
+    if not valid_volume:
+        reasons.append("bad cell volume")
+    if not valid_density:
+        reasons.append("bad density")
+    if not distance_ok:
+        reasons.append("atoms too close")
+    if not lengths_ok:
+        reasons.append("bad lattice lengths")
+    if not angles_ok:
+        reasons.append("bad lattice angles")
+
+    volume_per_atom = float(volume / max(num_atoms, 1)) if np.isfinite(volume) else float("nan")
+    lightweight_valid = len(reasons) == 0
+
+    return {
+        "min_pair_distance": min_pair_distance,
+        "volume_per_atom": volume_per_atom,
+        "valid_volume": valid_volume,
+        "valid_density": valid_density,
+        "distance_ok": distance_ok,
+        "lattice_lengths_ok": lengths_ok,
+        "lattice_angles_ok": angles_ok,
+        "lightweight_valid": lightweight_valid,
+        "failure_reason": "ok" if lightweight_valid else "; ".join(reasons),
+    }
+
+
+def summarize_structures(structures):
+    rows = []
+    for idx, s in enumerate(structures):
+        try:
+            formula = s.composition.reduced_formula
+        except Exception:
+            formula = "INVALID"
+
+        try:
+            volume = float(s.volume)
+        except Exception:
+            volume = float("nan")
+
+        density = safe_structure_density(s)
+        sg_num, sg_symbol = safe_spacegroup_info(s)
+        validity = lightweight_validity_dict(s)
+        rows.append(
+            {
+                "sample_id": idx,
+                "formula": formula,
+                "num_atoms": len(s),
+                "density": density,
+                "volume": volume,
+                "spacegroup_number": sg_num,
+                "spacegroup_symbol": sg_symbol,
+                **validity,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def validity_report(summary_df: pd.DataFrame, label: str) -> pd.DataFrame:
+    if summary_df.empty:
+        return pd.DataFrame(
+            [{
+                "label": label,
+                "n_samples": 0,
+                "valid_count": 0,
+                "valid_fraction": float("nan"),
+                "median_density": float("nan"),
+                "median_min_pair_distance": float("nan"),
+                "most_common_issue": "no samples",
+            }]
+        )
+
+    invalid_df = summary_df.loc[~summary_df["lightweight_valid"]]
+    if invalid_df.empty:
+        most_common_issue = "all passed"
+    else:
+        most_common_issue = invalid_df["failure_reason"].value_counts().idxmax()
+
+    return pd.DataFrame(
+        [{
+            "label": label,
+            "n_samples": int(len(summary_df)),
+            "valid_count": int(summary_df["lightweight_valid"].sum()),
+            "valid_fraction": float(summary_df["lightweight_valid"].mean()),
+            "median_density": float(summary_df["density"].median()),
+            "median_min_pair_distance": float(summary_df["min_pair_distance"].median()),
+            "most_common_issue": most_common_issue,
+        }]
+    )
 
 
 __all__ = [

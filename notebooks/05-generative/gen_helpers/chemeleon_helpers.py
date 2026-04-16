@@ -14,21 +14,51 @@ from pathlib import Path
 from IPython.display import HTML, display
 
 
-TUTORIAL_REPO = "camml-tutorials"
-TUTORIAL_REMOTE = "https://github.com/ddmms/camml-tutorials.git"
+TUTORIAL_REPO = "tutorials"
+TUTORIAL_REMOTE = "https://gitlab.com/cam-ml/tutorials.git"
+TUTORIAL_COLAB_DIR_CANDIDATES = (
+    Path("/content") / "tutorials",
+    Path("/content") / "cam_ml_tutorials",
+    Path("/content") / "camml-tutorials",
+)
 NOTEBOOK_FILENAME = "chemeleon-crystals.ipynb"
 CHEMELEON_DNG_REMOTE = "https://github.com/hspark1212/chemeleon-dng.git"
 CHEMELEON_DNG_COMMIT = "0d8da3a82a0c2211245a1b1394b599ca0545883c"
 
 def find_notebook_root(notebook_filename: str = NOTEBOOK_FILENAME) -> Path:
+    module_candidate = Path(__file__).resolve().parent.parent
+    if (module_candidate / notebook_filename).exists() and (module_candidate / "README.md").exists():
+        return module_candidate.resolve()
+
     cwd = Path.cwd().resolve()
     for candidate in [cwd, *cwd.parents]:
         if (candidate / notebook_filename).exists() and (candidate / "README.md").exists():
             return candidate.resolve()
-    content_candidate = Path("/content") / TUTORIAL_REPO / "notebooks" / "05-generative"
-    if (content_candidate / notebook_filename).exists():
-        return content_candidate.resolve()
+
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        content_candidate = repo_dir / "notebooks" / "05-generative"
+        if (content_candidate / notebook_filename).exists():
+            return content_candidate.resolve()
+
     raise FileNotFoundError("Could not locate the notebooks/05-generative directory for this tutorial repo.")
+
+
+def ensure_colab_tutorial_repo() -> Path:
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        notebook_root = repo_dir / "notebooks" / "05-generative"
+        if notebook_root.exists():
+            return repo_dir.resolve()
+
+    for repo_dir in TUTORIAL_COLAB_DIR_CANDIDATES:
+        if repo_dir.exists():
+            continue
+        print(f"Cloning {TUTORIAL_REMOTE} into {repo_dir}...")
+        subprocess.run(["git", "clone", "--depth", "1", "--branch", "main", TUTORIAL_REMOTE, str(repo_dir)], check=True)
+        return repo_dir.resolve()
+
+    raise FileNotFoundError(
+        "Could not find or clone the Day 5 tutorial repo in /content for this Colab session."
+    )
 
 
 def repo_is_valid(path: Path) -> bool:
@@ -55,10 +85,8 @@ def setup_chemeleon_dng_environment(
     print("Python:", sys.version)
     print("Working dir:", os.getcwd())
 
-    repo_path_in_content = Path("/content") / TUTORIAL_REPO
-    if "google.colab" in sys.modules and not repo_path_in_content.exists():
-        print(f"Cloning {TUTORIAL_REPO} into /content/...")
-        subprocess.run(["git", "clone", TUTORIAL_REMOTE, str(repo_path_in_content)], check=True)
+    if "google.colab" in sys.modules:
+        ensure_colab_tutorial_repo()
 
     notebook_root = find_notebook_root(notebook_filename)
     os.chdir(notebook_root)
@@ -219,6 +247,7 @@ def sample_chemeleon_dng(
     code_lines = [
         "from pathlib import Path",
         "from chemeleon_dng.diffusion.diffusion_module import DiffusionModule",
+        "from chemeleon_dng.download_util import ensure_checkpoints_downloaded",
         "from chemeleon_dng.sample import DEFAULT_MODEL_PATH, get_checkpoint_path, sample_csp, sample_dng",
         f"task = {json.dumps(task)}",
         f"device = {json.dumps(resolved_device)}",
@@ -230,6 +259,16 @@ def sample_chemeleon_dng(
         f"model_path = {repr(model_path)}",
         "if model_path is None:",
         "    model_path = get_checkpoint_path(task, DEFAULT_MODEL_PATH)",
+        "else:",
+        "    model_path = Path(model_path)",
+        "    if not model_path.is_absolute():",
+        "        model_path = (Path.cwd() / model_path).resolve()",
+        "    if not model_path.exists():",
+        '        print(f\"Checkpoint {model_path} not found locally; downloading the upstream Chemeleon-DNG checkpoints bundle...\")',
+        "        ensure_checkpoints_downloaded(str(model_path.parent))",
+        "    if not model_path.exists():",
+        '        raise FileNotFoundError(f\"Checkpoint not found after download attempt: {model_path}\")',
+        "    model_path = str(model_path)",
         'print(f"Using checkpoint path: {model_path}")',
         "dm = DiffusionModule.load_from_checkpoint(model_path, map_location=device, weights_only=False)",
         'print(f"Original timesteps: {dm.num_timesteps}")',
@@ -333,15 +372,33 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
             )
 
     print(f"Loaded {len(dng_rows)} DNG structures across {len(dng_run_atoms)} steering settings")
+    baseline_label = "baseline_prior" if "baseline_prior" in dng_run_atoms else next(iter(dng_run_atoms))
+    baseline_rows = [row for row in dng_rows if row["label"] == baseline_label]
+    baseline_mean_n_sites = float(np.mean([row["n_sites"] for row in baseline_rows]))
+    baseline_mean_volume = float(np.mean([row["volume"] for row in baseline_rows]))
+    shift_rows = []
+
     for label in dng_run_atoms:
         rows = [row for row in dng_rows if row["label"] == label]
+        mean_n_sites = float(np.mean([row["n_sites"] for row in rows]))
+        mean_volume = float(np.mean([row["volume"] for row in rows]))
+        shift_rows.append(
+            {
+                "setting": dng_run_titles[label],
+                "mean_n_sites": mean_n_sites,
+                "delta_mean_n_sites": mean_n_sites - baseline_mean_n_sites,
+                "mean_volume": mean_volume,
+                "delta_mean_volume": mean_volume - baseline_mean_volume,
+                "unique_formulas": len({row["formula"] for row in rows}),
+            }
+        )
         print(
-            f"- {dng_run_titles[label]}: mean n_sites={np.mean([row['n_sites'] for row in rows]):.2f}, "
-            f"mean density={np.mean([row['density'] for row in rows]):.3f}, "
+            f"- {dng_run_titles[label]}: mean n_sites={mean_n_sites:.2f}, "
+            f"mean volume={mean_volume:.2f}, "
             f"unique formulas={len({row['formula'] for row in rows})}"
         )
 
-    fig, axes = plt.subplots(2, 3, figsize=(16, 10), facecolor="white")
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10), facecolor="white")
     for x, label in enumerate(dng_run_atoms, start=1):
         rows = [row for row in dng_rows if row["label"] == label]
         jitter = np.linspace(-0.08, 0.08, num=len(rows)) if len(rows) > 1 else np.array([0.0])
@@ -355,23 +412,21 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
         )
         axes[0, 1].scatter(
             np.full(len(rows), x) + jitter,
-            [row["density"] for row in rows],
+            [row["volume"] for row in rows],
             s=65,
             color=colors[label],
             edgecolors="black",
             linewidths=0.3,
         )
-        axes[1, 2].bar(x, len({row["formula"] for row in rows}), color=colors[label], width=0.6)
         axes[1, 0].scatter(
+            [row["n_sites"] for row in rows],
             [row["volume"] for row in rows],
-            [row["density"] for row in rows],
             s=95,
             color=colors[label],
             label=dng_run_titles[label],
             edgecolors="black",
             linewidths=0.3,
         )
-        axes[0, 2].hist([row["density"] for row in rows], bins=4, alpha=0.55, color=colors[label], label=dng_run_titles[label])
         axes[1, 1].hist(
             [row["n_sites"] for row in rows],
             bins=np.arange(5.5, 17.6, 1.0),
@@ -382,21 +437,16 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
 
     for ax, ylabel, title in [
         (axes[0, 0], "n_sites", "Atom-count control in DNG"),
-        (axes[0, 1], "density", "Density by DNG steering setting"),
+        (axes[0, 1], "volume (A^3)", "Volume by DNG steering setting"),
     ]:
         ax.set_xticks(range(1, len(dng_run_atoms) + 1))
         ax.set_xticklabels([dng_run_titles[label] for label in dng_run_atoms], rotation=15, ha="right")
         ax.set_ylabel(ylabel)
         ax.set_title(title)
 
-    axes[0, 2].set_title("Density distributions across DNG steering settings")
-    axes[0, 2].set_xlabel("density")
-    axes[0, 2].set_ylabel("count")
-    axes[0, 2].legend(frameon=False)
-
-    axes[1, 0].set_title("Density vs volume across DNG steering settings")
-    axes[1, 0].set_xlabel("volume")
-    axes[1, 0].set_ylabel("density")
+    axes[1, 0].set_title("Do the steering schedules move the generator into different size regimes?")
+    axes[1, 0].set_xlabel("n_sites")
+    axes[1, 0].set_ylabel("volume (A^3)")
     axes[1, 0].legend(frameon=False)
 
     axes[1, 1].set_title("Atom-count distributions across DNG steering settings")
@@ -404,24 +454,19 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
     axes[1, 1].set_ylabel("count")
     axes[1, 1].legend(frameon=False)
 
-    axes[1, 2].set_xticks(range(1, len(dng_run_atoms) + 1))
-    axes[1, 2].set_xticklabels([dng_run_titles[label] for label in dng_run_atoms], rotation=15, ha="right")
-    axes[1, 2].set_ylabel("unique formulas")
-    axes[1, 2].set_title("Formula diversity per DNG steering setting")
-
     plt.tight_layout()
     plt.show()
 
-    dng_sorted_by_density = sorted(dng_rows, key=lambda row: row["density"])
+    dng_sorted_by_n_sites = sorted(dng_rows, key=lambda row: (row["n_sites"], row["volume"], row["sample_id"]))
     render_rank_table(
-        "Lowest-density DNG candidates across all steering settings",
-        dng_sorted_by_density[:3],
-        ["display_name", "formula", "n_sites", "volume", "density"],
+        "Smallest generated cells across all DNG steering settings",
+        dng_sorted_by_n_sites[:4],
+        ["display_name", "formula", "n_sites", "volume"],
     )
     render_rank_table(
-        "Highest-density DNG candidates across all steering settings",
-        list(reversed(dng_sorted_by_density[-3:])),
-        ["display_name", "formula", "n_sites", "volume", "density"],
+        "Largest generated cells across all DNG steering settings",
+        list(reversed(dng_sorted_by_n_sites[-4:])),
+        ["display_name", "formula", "n_sites", "volume"],
     )
 
     output_dir = Path(output_dir)
@@ -431,7 +476,7 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
             "Chemeleon-DNG small-cell DNG steering",
             output_dir / "dng_small_cells_gallery.png",
             subtitles=[
-                f"{atoms.get_chemical_formula()} | {len(atoms)} atoms | density={float(atoms.get_masses().sum() / max(atoms.get_volume(), 1e-12)):.3f}"
+                f"{atoms.get_chemical_formula()} | {len(atoms)} atoms | volume={float(atoms.get_volume()):.1f} A^3"
                 for atoms in dng_run_atoms["small_cells"][:3]
             ],
             columns=3,
@@ -442,31 +487,31 @@ def analyze_dng_runs(dng_run_atoms, dng_run_titles, output_dir: Path, colors=Non
             "Chemeleon-DNG large-cell DNG steering",
             output_dir / "dng_large_cells_gallery.png",
             subtitles=[
-                f"{atoms.get_chemical_formula()} | {len(atoms)} atoms | density={float(atoms.get_masses().sum() / max(atoms.get_volume(), 1e-12)):.3f}"
+                f"{atoms.get_chemical_formula()} | {len(atoms)} atoms | volume={float(atoms.get_volume()):.1f} A^3"
                 for atoms in dng_run_atoms["large_cells"][:3]
             ],
             columns=3,
         )
 
     show_atoms_gallery(
-        [dng_run_atoms[row["label"]][row["sample_id"]] for row in dng_sorted_by_density[:3]],
-        "Lowest-density DNG candidates across all steering settings",
-        output_dir / "dng_low_density_gallery.png",
-        subtitles=[f"{row['display_name']} | {row['formula']} | density={row['density']:.3f}" for row in dng_sorted_by_density[:3]],
+        [dng_run_atoms[row["label"]][row["sample_id"]] for row in dng_sorted_by_n_sites[:3]],
+        "Smallest generated cells across all steering settings",
+        output_dir / "dng_smallest_cells_gallery.png",
+        subtitles=[f"{row['display_name']} | {row['formula']} | {row['n_sites']} atoms" for row in dng_sorted_by_n_sites[:3]],
         columns=3,
     )
     show_atoms_gallery(
-        [dng_run_atoms[row["label"]][row["sample_id"]] for row in list(reversed(dng_sorted_by_density[-3:]))],
-        "Highest-density DNG candidates across all steering settings",
-        output_dir / "dng_high_density_gallery.png",
+        [dng_run_atoms[row["label"]][row["sample_id"]] for row in list(reversed(dng_sorted_by_n_sites[-3:]))],
+        "Largest generated cells across all steering settings",
+        output_dir / "dng_largest_cells_gallery.png",
         subtitles=[
-            f"{row['display_name']} | {row['formula']} | density={row['density']:.3f}"
-            for row in list(reversed(dng_sorted_by_density[-3:]))
+            f"{row['display_name']} | {row['formula']} | {row['n_sites']} atoms"
+            for row in list(reversed(dng_sorted_by_n_sites[-3:]))
         ],
         columns=3,
     )
 
-    return {"rows": dng_rows, "sorted_by_density": dng_sorted_by_density}
+    return {"rows": dng_rows, "shift_rows": shift_rows, "sorted_by_n_sites": dng_sorted_by_n_sites}
 
 
 def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None):
@@ -500,21 +545,33 @@ def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None)
             )
 
     print(f"Loaded {len(csp_rows)} CSP structures across {len(csp_samples)} formulas")
+    summary_rows = []
     for formula in csp_targets:
         subset = [row for row in csp_rows if row["formula_target"] == formula]
+        mean_volume = float(np.mean([row["volume"] for row in subset]))
+        mean_n_sites = float(np.mean([row["n_sites"] for row in subset]))
+        match_fraction = float(np.mean([row["formula_match"] for row in subset]))
+        summary_rows.append(
+            {
+                "formula_target": formula,
+                "mean_volume": mean_volume,
+                "mean_n_sites": mean_n_sites,
+                "formula_match_fraction": match_fraction,
+            }
+        )
         print(
-            f"- {formula}: mean density={np.mean([row['density'] for row in subset]):.3f}, "
-            f"mean volume={np.mean([row['volume'] for row in subset]):.2f}, "
-            f"formula-match fraction={np.mean([row['formula_match'] for row in subset]):.2f}"
+            f"- {formula}: mean volume={mean_volume:.2f}, "
+            f"mean n_sites={mean_n_sites:.2f}, "
+            f"formula-match fraction={match_fraction:.2f}"
         )
 
-    fig, axes = plt.subplots(2, 3, figsize=(15, 9), facecolor="white")
+    fig, axes = plt.subplots(2, 2, figsize=(13, 10), facecolor="white")
     for x, formula in enumerate(csp_targets, start=1):
         subset = [row for row in csp_rows if row["formula_target"] == formula]
         jitter = np.linspace(-0.06, 0.06, num=len(subset)) if len(subset) > 1 else np.array([0.0])
         axes[0, 0].scatter(
             np.full(len(subset), x) + jitter,
-            [row["density"] for row in subset],
+            [row["volume"] for row in subset],
             s=65,
             color=colors[formula],
             edgecolors="black",
@@ -522,7 +579,7 @@ def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None)
         )
         axes[0, 1].scatter(
             np.full(len(subset), x) + jitter,
-            [row["volume"] for row in subset],
+            [row["n_sites"] for row in subset],
             s=65,
             color=colors[formula],
             edgecolors="black",
@@ -530,7 +587,7 @@ def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None)
         )
         axes[1, 0].scatter(
             [row["volume"] for row in subset],
-            [row["density"] for row in subset],
+            [row["n_sites"] for row in subset],
             label=formula,
             s=90,
             color=colors[formula],
@@ -538,34 +595,19 @@ def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None)
             linewidths=0.3,
         )
         axes[1, 1].bar(x, np.mean([row["formula_match"] for row in subset]), color=colors[formula], width=0.6)
-        axes[0, 2].hist([row["density"] for row in subset], bins=4, alpha=0.55, color=colors[formula], label=formula)
-        axes[1, 2].scatter(
-            np.full(len(subset), x) + jitter,
-            [row["n_sites"] for row in subset],
-            s=65,
-            color=colors[formula],
-            edgecolors="black",
-            linewidths=0.3,
-        )
 
     for ax, ylabel, title in [
-        (axes[0, 0], "density", "Density by CSP target formula"),
-        (axes[0, 1], "volume", "Volume by CSP target formula"),
-        (axes[1, 2], "n_sites", "Atom count by CSP target formula"),
+        (axes[0, 0], "volume (A^3)", "Volume by CSP target formula"),
+        (axes[0, 1], "n_sites", "Atom count by CSP target formula"),
     ]:
         ax.set_xticks(range(1, len(csp_targets) + 1))
         ax.set_xticklabels(csp_targets)
         ax.set_ylabel(ylabel)
         ax.set_title(title)
 
-    axes[0, 2].set_title("Density distributions across CSP target formulas")
-    axes[0, 2].set_xlabel("density")
-    axes[0, 2].set_ylabel("count")
-    axes[0, 2].legend(frameon=False)
-
-    axes[1, 0].set_title("CSP density vs volume")
+    axes[1, 0].set_title("Did different formulas land in different structural size regimes?")
     axes[1, 0].set_xlabel("volume")
-    axes[1, 0].set_ylabel("density")
+    axes[1, 0].set_ylabel("n_sites")
     axes[1, 0].legend(frameon=False)
 
     axes[1, 1].set_xticks(range(1, len(csp_targets) + 1))
@@ -577,58 +619,64 @@ def analyze_csp_samples(csp_samples, csp_targets, output_dir: Path, colors=None)
     plt.tight_layout()
     plt.show()
 
-    csp_sorted_by_density = sorted(csp_rows, key=lambda row: row["density"])
+    csp_matching_rows = [row for row in csp_rows if row["formula_match"]]
+    csp_mismatched_rows = [row for row in csp_rows if not row["formula_match"]]
+    csp_matching_rows = sorted(csp_matching_rows, key=lambda row: (row["formula_target"], row["volume"], row["sample_id"]))
+    csp_mismatched_rows = sorted(csp_mismatched_rows, key=lambda row: (row["formula_target"], row["volume"], row["sample_id"]))
     render_rank_table(
-        "Lowest-density CSP candidates across both target formulas",
-        csp_sorted_by_density[:4],
-        ["formula_target", "generated_formula", "formula_match", "n_sites", "volume", "density"],
+        "Formula-matching CSP candidates",
+        csp_matching_rows[:4],
+        ["formula_target", "generated_formula", "n_sites", "volume"],
     )
-    render_rank_table(
-        "Highest-density CSP candidates across both target formulas",
-        list(reversed(csp_sorted_by_density[-4:])),
-        ["formula_target", "generated_formula", "formula_match", "n_sites", "volume", "density"],
-    )
-
-    perfect_matches = [row for row in csp_rows if row["formula_match"]]
-    if perfect_matches:
-        perfect_matches = sorted(perfect_matches, key=lambda row: row["density"], reverse=True)
+    if csp_mismatched_rows:
         render_rank_table(
-            "Densest formula-matching CSP candidates",
-            perfect_matches[:4],
-            ["formula_target", "generated_formula", "n_sites", "volume", "density"],
+            "Off-target CSP candidates",
+            csp_mismatched_rows[:4],
+            ["formula_target", "generated_formula", "n_sites", "volume"],
         )
 
     output_dir = Path(output_dir)
-    show_atoms_gallery(
-        [row["atoms"] for row in csp_sorted_by_density[:2]],
-        "Lowest-density CSP candidates across both target formulas",
-        output_dir / "csp_low_density_gallery.png",
-        subtitles=[
-            f"{row['formula_target']} target | {row['generated_formula']} | density={row['density']:.3f}"
-            for row in csp_sorted_by_density[:2]
-        ],
-        columns=2,
-    )
-    show_atoms_gallery(
-        [row["atoms"] for row in list(reversed(csp_sorted_by_density[-2:]))],
-        "Highest-density CSP candidates across both target formulas",
-        output_dir / "csp_high_density_gallery.png",
-        subtitles=[
-            f"{row['formula_target']} target | {row['generated_formula']} | density={row['density']:.3f}"
-            for row in list(reversed(csp_sorted_by_density[-2:]))
-        ],
-        columns=2,
-    )
+    if csp_matching_rows:
+        show_atoms_gallery(
+            [row["atoms"] for row in csp_matching_rows[:2]],
+            "Formula-matching CSP candidates",
+            output_dir / "csp_matching_gallery.png",
+            subtitles=[
+                f"{row['formula_target']} target | {row['generated_formula']} | volume={row['volume']:.1f} A^3"
+                for row in csp_matching_rows[:2]
+            ],
+            columns=2,
+        )
+    if csp_mismatched_rows:
+        show_atoms_gallery(
+            [row["atoms"] for row in csp_mismatched_rows[:2]],
+            "Off-target CSP candidates",
+            output_dir / "csp_mismatched_gallery.png",
+            subtitles=[
+                f"{row['formula_target']} target | {row['generated_formula']} | volume={row['volume']:.1f} A^3"
+                for row in csp_mismatched_rows[:2]
+            ],
+            columns=2,
+        )
 
-    return {"rows": csp_rows, "sorted_by_density": csp_sorted_by_density}
+    return {
+        "rows": csp_rows,
+        "summary_rows": summary_rows,
+        "matching_rows": csp_matching_rows,
+        "mismatched_rows": csp_mismatched_rows,
+    }
 
 
 __all__ = [
     "CHEMELEON_DNG_COMMIT",
     "CHEMELEON_DNG_REMOTE",
     "NOTEBOOK_FILENAME",
+    "TUTORIAL_COLAB_DIR_CANDIDATES",
+    "TUTORIAL_REMOTE",
+    "TUTORIAL_REPO",
     "analyze_csp_samples",
     "analyze_dng_runs",
+    "ensure_colab_tutorial_repo",
     "find_notebook_root",
     "render_rank_table",
     "repo_has_commit",
