@@ -1,125 +1,118 @@
-# Diffusion Model Tutorial
+# Day 5: Generative Workshop
 
-A notebook-first tutorial repo for learning diffusion models and then applying them to crystal generation.
+This folder is the final workshop arc for the course. The teaching goal is not just to show modern diffusion models, but to make them feel like a natural continuation of what students already practiced earlier in the repo:
 
-The teaching ladder is:
+- from `01-intro/tutorial.ipynb`: inspect the data before trusting the model,
+- from the neural-network notebooks: read losses and ablations critically,
+- from `04-cgcnn/graph-networks.ipynb`: think in variable-size crystal graphs rather than fixed-size vectors.
 
-1. start with diffusion intuition and the main diffusion-model families,
-2. build a small crystal diffusion model from scratch,
-3. compare that workflow against modern crystal-generation toolkits.
+The generative section now has a four-notebook ladder:
 
-Each notebook is runnable on its own, but they are designed to work best in sequence.
+1. learn the diffusion mechanics on simple toy systems,
+2. build a compact crystal diffusion model from scratch,
+3. run a pretrained MatterGen workflow,
+4. run a pretrained Chemeleon-DNG workflow.
 
-## What This Repo Covers
-
-- diffusion intuition from stochastic motion, Langevin dynamics, and denoising,
-- model families including DDPM, score-based models / NCSN, and DDIM,
-- unconditional and conditional generation,
-- crystal-specific representations, corruption processes, and sampling,
-- practical SOTA workflows with MatterGen and Chemeleon-DNG.
-
-The notebooks include:
-
-- tables of contents,
-- questions and exercises throughout,
-- hidden answers,
-- collapsed implementation-heavy cells where possible,
-- Colab-friendly setup cells and badges.
+Each notebook is designed as a hands-on lesson with short prediction prompts, `Task for you` checkpoints, and end-of-notebook exercises.
 
 ## Notebook Ladder
 
 ### 1. Diffusion Fundamentals
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/main/diffusion-fundamentals.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/diffusion-fundamentals.ipynb)
 
 Notebook: [`diffusion-fundamentals.ipynb`](./diffusion-fundamentals.ipynb)
 
 Focus:
-- build intuition for noisy dynamics and denoising,
-- understand what DDPM, NCSN / score-based models, and DDIM actually learn,
-- compare these model families on the same toy dataset,
-- bridge from generic diffusion ideas to materials and crystals.
+- build intuition for stochastic dynamics, Langevin sampling, and denoising,
+- compare NCSN / score-based models, DDPM, and DDIM on one toy dataset,
+- separate the ideas of forward corruption, reverse prediction, and sampling,
+- prepare for crystals by making the diffusion mechanics feel familiar first.
 
 Good for:
 - first contact with diffusion models,
-- teaching or self-study,
-- readers who want both intuition and runnable examples.
+- students who want the mathematics tied back to chemistry language,
+- a short conceptual warm-up before the crystal notebooks.
 
 Runtime:
-- fast plotting sections at the start,
-- roughly 10-20 minutes on CPU for a fuller first pass through the training demos.
+- mostly lightweight plotting and toy training,
+- roughly 10-20 minutes on CPU for a full first pass.
 
 ### 2. Crystal Diffusion From Scratch
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/main/crystal-diffusion-from-scratch.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/crystal-diffusion-from-scratch.ipynb)
 
 Notebook: [`crystal-diffusion-from-scratch.ipynb`](./crystal-diffusion-from-scratch.ipynb)
 
 Focus:
-- pull a small crystal dataset from Materials Project,
-- build a compact MatterGen-like representation,
-- define forward corruption for coordinates, lattice, and atom types,
-- train an unconditional model,
-- add conditional control for density, band gap, composition, and space group,
-- inspect generated crystals, trajectories, and lightweight validity checks.
+- build a small teaching corpus from Materials Project,
+- create a flattened crystal-batch representation,
+- define separate corruption processes for coordinates, lattice, and atom types,
+- train an unconditional denoiser and then add lightweight conditioning,
+- inspect generated crystals, trajectories, and screening diagnostics.
 
 Good for:
-- readers who want to see how a crystal diffusion pipeline is assembled,
-- small-scale experimentation,
-- understanding the jump from toy diffusion examples to periodic materials.
+- the core capstone lesson of the workshop,
+- students who want to see how a crystal diffusion pipeline is assembled end to end,
+- connecting diffusion fundamentals to graph-based crystal learning.
 
 Runtime:
-- `quick` mode is the best first pass and is designed to stay notebook-scale,
-- `full` mode is heavier and better once the workflow already runs on your machine.
+- `quick` mode is the recommended classroom path,
+- `full` mode is better once the notebook already runs on your machine.
 
-Notes:
-- if an MP API key is available, the notebook can build a small live dataset from Materials Project,
-- otherwise it falls back to a bundled small real-MP teaching dataset.
+### 3. MatterGen In Practice
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/mattergen-crystals.ipynb)
 
-### 3. Crystal Generation SOTA Comparison
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/main/sota-crystals-comparison.ipynb)
-
-Notebook: [`sota-crystals-comparison.ipynb`](./sota-crystals-comparison.ipynb)
+Notebook: [`mattergen-crystals.ipynb`](./mattergen-crystals.ipynb)
 
 Focus:
-- run pretrained MatterGen workflows,
-- compare unconditional and property-conditioned generation,
-- run Chemeleon-DNG in DNG and CSP modes,
-- inspect distributions, galleries, trajectories, and screening outputs,
-- compare what each toolkit is good at in practice.
+- run pretrained MatterGen checkpoints,
+- compare unconditional generation with a low-vs-high conditioned sweep,
+- parse the returned structures into summary tables and galleries,
+- inspect one recorded reverse-diffusion trajectory,
+- practice the distinction between conditioning and post-generation screening.
 
 Good for:
-- readers who want practical modern crystal-generation demos,
-- users choosing between direct crystal diffusion and more task-oriented toolkits,
-- classroom demos of pretrained systems.
+- students who want the cleanest bridge from the scratch notebook to a real pretrained workflow,
+- classroom demos of direct crystal diffusion at larger scale,
+- discussing what a candidate pool looks like before downstream relaxation or DFT.
 
 Runtime:
-- the heaviest notebook in the repo,
-- first run is install- and download-heavy because it builds external environments and fetches checkpoints,
-- repeat runs are much faster once caches exist.
+- first run is install- and checkpoint-heavy,
+- repeat runs are much faster after caching.
+
+### 4. Chemeleon-DNG In Practice
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ddmms/camml-tutorials/blob/main/notebooks/05-generative/chemeleon-crystals.ipynb)
+
+Notebook: [`chemeleon-crystals.ipynb`](./chemeleon-crystals.ipynb)
+
+Focus:
+- run Chemeleon-DNG in open-ended DNG mode,
+- steer DNG with different atom-count schedules,
+- run CSP for explicit formula-conditioned generation,
+- compare task choice, conditioning, and screening against the MatterGen workflow.
+
+Good for:
+- students who want a task-oriented crystal-generation toolkit,
+- comparing open-ended generation with formula-conditioned search,
+- discussing which control knobs are available before and after sampling.
+
+Runtime:
+- also install- and checkpoint-heavy on the first pass,
+- later runs reuse the local environment and generated CIFs.
 
 ## Suggested Reading Order
 
 1. [`diffusion-fundamentals.ipynb`](./diffusion-fundamentals.ipynb)
 2. [`crystal-diffusion-from-scratch.ipynb`](./crystal-diffusion-from-scratch.ipynb)
-3. [`sota-crystals-comparison.ipynb`](./sota-crystals-comparison.ipynb)
+3. [`mattergen-crystals.ipynb`](./mattergen-crystals.ipynb)
+4. [`chemeleon-crystals.ipynb`](./chemeleon-crystals.ipynb)
 
-If you already know diffusion models well, you can jump straight to the crystal notebook.  
-If you mainly want pretrained crystal-generation workflows, you can go directly to the SOTA notebook.
+If you already know diffusion models well, you can start at the scratch crystal notebook.  
+If you mainly want pretrained workflows, start with MatterGen and then Chemeleon-DNG.
 
-## Data And External Tools
+## External Data And Tools
 
-- Materials Project is used in the crystal notebook for live dataset construction.
-- MatterGen is used in the SOTA notebook as the direct crystal-diffusion example.
-- Chemeleon-DNG is used in the SOTA notebook as the second modern crystal-generation system.
+- Materials Project is used for the from-scratch notebook and as context for the pretrained workflows.
+- MatterGen is used as the direct pretrained crystal-diffusion example.
+- Chemeleon-DNG is used as the task-oriented DNG/CSP example.
 
-The SOTA notebook pins the external model repos by commit so the workflow is more reproducible.
-
-## Repo Goal
-
-This repo is meant to be a compact teaching path, not a full benchmark suite or production package.
-
-The emphasis is on:
-
-- clarity,
-- runnable examples,
-- conceptual continuity across notebooks,
-- enough realism to make the crystal-generation workflow feel authentic.
+The pretrained notebooks pin upstream commits so the walkthroughs stay as reproducible as possible in a teaching setting.
