@@ -927,5 +927,8 @@ __all__ = [
     "structure_from_mp_doc",
     "wrap_centered_np",
     "wrap_centered_torch",
+    "summarize_structures",
+    "validity_report",
+    "lightweight_validity_dict",
 ]
 
