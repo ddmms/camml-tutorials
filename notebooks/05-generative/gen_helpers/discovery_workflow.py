@@ -270,7 +270,6 @@ def fetch_mp_entries_for_chemsys(
     *,
     thermo_types=("GGA_GGA+U",),
 ):
-    from mp_api.client import MPRester
     try:
         from pymatgen.analysis.phase_diagram import PDEntry
     except Exception as exc:
@@ -280,11 +279,36 @@ def fetch_mp_entries_for_chemsys(
             "(for example because the Python build is missing `_bz2`)."
         ) from exc
 
-    with MPRester(api_key=api_key) as mpr:
-        raw_entries = mpr.get_entries_in_chemsys(
-            elements=list(elements),
-            additional_criteria={"thermo_types": list(thermo_types)},
-        )
+    mp_rester = None
+    mp_api_import_error = None
+    try:
+        from mp_api.client import MPRester as mp_api_mprester
+    except Exception as exc:
+        mp_api_import_error = exc
+    else:
+        mp_rester = mp_api_mprester
+
+    if mp_rester is not None:
+        with mp_rester(api_key=api_key) as mpr:
+            raw_entries = mpr.get_entries_in_chemsys(
+                elements=list(elements),
+                additional_criteria={"thermo_types": list(thermo_types)},
+            )
+    else:
+        try:
+            from pymatgen.ext.matproj import MPRester as pymatgen_mprester
+        except Exception as exc:
+            raise ImportError(
+                "Fetching Materials Project entries requires either `mp_api` or "
+                "`pymatgen.ext.matproj.MPRester`. The `mp_api` import failed with: "
+                f"{mp_api_import_error!r}"
+            ) from exc
+
+        with pymatgen_mprester(api_key=api_key) as mpr:
+            raw_entries = mpr.get_entries_in_chemsys(
+                list(elements),
+                compatible_only=True,
+            )
     return [PDEntry(entry.composition, entry.uncorrected_energy) for entry in raw_entries]
 
 
