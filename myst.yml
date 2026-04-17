@@ -43,7 +43,8 @@ project:
       children:
         - file: notebooks/05-generative/diffusion-fundamentals.ipynb
         - file: notebooks/05-generative/crystal-diffusion-from-scratch.ipynb
-        - file: notebooks/05-generative/sota-crystals-comparison.ipynb
+        - file: notebooks/05-generative/mattergen-crystals.ipynb
+        - file: notebooks/05-generative/chemeleon-crystals.ipynb
 site:
   options:
     logo: logo.png
